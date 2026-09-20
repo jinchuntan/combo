@@ -15,8 +15,9 @@ from unittest import mock
 from apr_dashboard import initialize
 from apr_dashboard.metadata import (
     build_metadata, parse_run_path, read_run_timestamp)
+from apr_dashboard.metrics_schema import SCHEMA_VERSION
 from apr_dashboard.timing_schema import (
-    SCHEMA_VERSION, TIMING_UNIT, validate_item, validate_submission)
+    TIMING_UNIT, validate_item, validate_submission)
 
 # The valid-but-incomplete submission from the step 1 brief: FUNC_FF has no
 # measurements and reg2out is never measured.  Both absences are legal.

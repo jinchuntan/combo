@@ -87,8 +87,11 @@ def _to_timezone(offset, timestamp):
             "timestamp %r has an out of range timezone offset %r" % (timestamp, offset))
 
 
-def _to_utc_text(text, source):
-    """Normalise one marker timestamp to UTC and return it ending in Z."""
+def _to_moment(text, source):
+    """Turn one marker timestamp into an aware datetime."""
+    if not isinstance(text, str):
+        raise ValueError(
+            "timestamp in %s must be a string, got %s" % (source, type(text).__name__))
     match = _TIMESTAMP_RE.match(text)
     if match is None:
         raise ValueError(
@@ -96,15 +99,32 @@ def _to_utc_text(text, source):
             "with an explicit timezone offset" % (text, source))
     fraction = match.group("fraction")
     offset = _to_timezone(match.group("offset"), text)
+    # The date and time parts are handed to datetime so an impossible day or
+    # hour is rejected here rather than reaching the dashboard.
     try:
-        moment = datetime(
+        return datetime(
             int(match.group("year")), int(match.group("month")), int(match.group("day")),
             int(match.group("hour")), int(match.group("minute")), int(match.group("second")),
             int(fraction.ljust(6, "0")) if fraction else 0, offset)
     except ValueError as error:
         raise ValueError(
             "timestamp %r in %s is not a real date and time: %s" % (text, source, error))
-    utc = moment.astimezone(timezone.utc)
+
+
+def parse_timestamp(text):
+    """Turn a stored timestamp back into a UTC datetime.
+
+    The dashboard compares run times as instants rather than as text, so an
+    offset timestamp and a Z timestamp for the same moment compare equal.
+    """
+    return _to_moment(text, "timestamp").astimezone(timezone.utc)
+
+
+def _to_utc_text(text, source):
+    """Normalise one marker timestamp to UTC and return it ending in Z."""
+    match = _TIMESTAMP_RE.match(text)
+    fraction = match.group("fraction") if match else None
+    utc = _to_moment(text, source).astimezone(timezone.utc)
     # Offsets shift whole minutes only, so the fraction survives the
     # conversion and is written back exactly as the log spelled it.
     formatted = "%04d-%02d-%02dT%02d:%02d:%02d" % (
@@ -129,6 +149,7 @@ def parse_run_path(run_path, run_root):
     except ValueError:
         raise ValueError("run_path %s is not inside run_root %s" % (run, root))
 
+    # Exactly three levels below the root, which is what makes a path a run.
     parts = relative.parts
     if len(parts) != 3:
         raise ValueError(
@@ -159,6 +180,9 @@ def read_run_timestamp(log_checker_file):
         candidates = [line.strip() for line in handle
                       if _CANDIDATE_RE.match(line.lstrip())]
 
+    # Exactly one marker is required. A missing one and a repeated one are
+    # both errors, because guessing which run a file describes is worse than
+    # stopping.
     if not candidates:
         raise ValueError("no 'Information: Time:' marker found in %s" % path)
     if len(candidates) > 1:
@@ -199,6 +223,7 @@ def build_metadata(run_path, log_checker_file, run_root, source_type,
         "run_timestamp": read_run_timestamp(log_path),
     }
 
+    # An APR run describes itself, so a previous step would be meaningless.
     if source_type == "APR":
         if prev_step is not None or prev_step_log_checker_file is not None:
             raise ValueError(

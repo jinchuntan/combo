@@ -13,8 +13,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .metadata import build_metadata
-from .timing_schema import (
-    SCHEMA_VERSION, TIMING_UNIT, validate_item, validate_submission)
+from .metrics_schema import SCHEMA_VERSION, validate_item, validate_submission
+from .timing_schema import TIMING_UNIT
 
 CONFIG_SETTINGS = ("run_root", "output_dir")
 
@@ -49,6 +49,8 @@ def _read_config(config_path):
     if not isinstance(settings, dict):
         raise ValueError(
             "%s must hold a JSON object, got %s" % (path, type(settings).__name__))
+    # Exactly the two settings, so a typo is reported instead of silently
+    # leaving a directory at its default.
     missing = [name for name in CONFIG_SETTINGS if name not in settings]
     if missing:
         raise ValueError("%s is missing %s" % (path, " and ".join(missing)))
@@ -112,6 +114,8 @@ class Submission:
         # Validate first so an odd key raises the schema error rather than a
         # TypeError from looking an unhashable key up in the dictionary.
         validate_item(key, value)
+        # A repeated key means the caller submitted the same measurement
+        # twice, which is a mistake rather than an update.
         if key in self._data:
             raise ValueError(
                 "%s was already submitted in this session with value %r"
@@ -127,6 +131,8 @@ class Submission:
         if self._saved_path is not None:
             return self._saved_path
 
+        # The cross-field rules run once here, so a caller may submit values
+        # in any order and still be told about a missing report reference.
         validate_submission(self._data)
 
         payload = dict(self._header)

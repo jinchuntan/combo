@@ -71,6 +71,8 @@ def _require_index_list(value, role, key):
         raise ValueError(
             "%s: must be a list of %s labels, got %s"
             % (key, role, type(value).__name__))
+    # A repeated label would make one measurement look like two, so it is
+    # refused rather than quietly collapsed.
     seen = set()
     for label in value:
         _require_label(label, role, key)
@@ -78,6 +80,16 @@ def _require_index_list(value, role, key):
             raise ValueError(
                 "%s: duplicate %s label %r" % (key, role, label))
         seen.add(label)
+
+
+def require_label(label, role, key):
+    """Share one label rule with the other schema modules."""
+    _require_label(label, role, key)
+
+
+def require_index_list(value, role, key):
+    """Share one index list rule with the other schema modules."""
+    _require_index_list(value, role, key)
 
 
 def _require_rptfile(value, key):
@@ -119,6 +131,8 @@ def validate_item(key, value):
         raise ValueError(
             "timing key must be a string, got %s" % type(key).__name__)
 
+    # The index lists declare which labels exist, so they are checked as
+    # lists of labels rather than as measurements.
     if key in INDEX_KEYS:
         role = "scenario" if key == "tmg_scenarios" else "path group"
         _require_index_list(value, role, key)
@@ -131,11 +145,13 @@ def validate_item(key, value):
             "Metadata keys such as 'block_name' do not belong in the timing "
             "metric dictionary." % (key, " / ".join(INDEX_KEYS), KEY_PREFIX))
 
+    # One report path per scenario, which is what makes a number traceable.
     if len(parts) == 3 and parts[2] == RPTFILE_FIELD:
         _require_label(parts[1], "scenario", key)
         _require_rptfile(value, key)
         return None
 
+    # A setup or hold measurement names its scenario and its path group.
     if len(parts) == 4 and parts[3] in CHECKS:
         _require_label(parts[1], "scenario", key)
         _require_label(parts[2], "path group", key)
@@ -161,6 +177,8 @@ def validate_submission(data):
         raise ValueError(
             "timing submission must be a dict, got %s" % type(data).__name__)
 
+    # Check each submitted value before comparing the scenario and path
+    # group lists.
     for key in data:
         validate_item(key, data[key])
 
@@ -169,6 +187,8 @@ def validate_submission(data):
     measured_scenarios = []
 
     for key in data:
+        # The index lists describe measurements but are not measurements
+        # themselves, so they are skipped here.
         if key in INDEX_KEYS:
             continue
         parts = key.split(",")
@@ -186,6 +206,8 @@ def validate_submission(data):
             if scenario not in measured_scenarios:
                 measured_scenarios.append(scenario)
 
+    # Keep the report reference so each measured scenario can be traced back
+    # to the file its numbers came from.
     for scenario in measured_scenarios:
         rptfile_key = "%s,%s,%s" % (KEY_PREFIX, scenario, RPTFILE_FIELD)
         if rptfile_key not in data:
