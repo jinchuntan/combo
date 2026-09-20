@@ -674,6 +674,39 @@ class TestInputsAreNeverOverwritten(DashboardTestCase):
         self.assertEqual(record.read_bytes(), before)
         self.assertEqual(entry.read_text(encoding="utf-8"), MARKER)
 
+    def test_a_dangling_symlink_between_two_pages_is_rejected(self):
+        # One page name points at another before either file exists. Writing
+        # the first would create the second page's file and the second write
+        # would replace it, so one submission would lose its page.
+        self.write_record(apr_record())
+        self.write_record(sta_record())
+        entry = Path(self.build())
+        pages = self.record_pages(entry)
+        apr_page = [p for p in pages if "(APR)" in p.read_text(encoding="utf-8")][0]
+        sta_page = [p for p in pages if "(STA)" in p.read_text(encoding="utf-8")][0]
+        block_page = self.block_pages(entry)[0]
+
+        apr_page.unlink()
+        sta_page.unlink()
+        self.link_or_skip(apr_page, Path(sta_page.name))
+        entry.write_text(MARKER, encoding="utf-8")
+        block_page.write_text(MARKER, encoding="utf-8")
+        inputs = [(path, path.read_bytes())
+                  for path in sorted(self.submissions.glob("*.json"))]
+
+        stream = io.StringIO()
+        with mock.patch.object(sys, "argv", ["prog", str(self.submissions)]):
+            with contextlib.redirect_stdout(stream):
+                with self.assertRaises(ValueError):
+                    main()
+
+        self.assertEqual(stream.getvalue(), "")
+        self.assertFalse(sta_page.exists())
+        self.assertEqual(entry.read_text(encoding="utf-8"), MARKER)
+        self.assertEqual(block_page.read_text(encoding="utf-8"), MARKER)
+        for path, data in inputs:
+            self.assertEqual(path.read_bytes(), data)
+
     def test_two_generated_pages_that_are_one_file_are_rejected(self):
         self.write_record(apr_record())
         self.write_record(sta_record())

@@ -193,16 +193,21 @@ def _require_safe_outputs(outputs, inputs):
 def _require_distinct_outputs(outputs):
     """Refuse a build in which one generated page would land on another.
 
-    Two planned pages can share a destination only through an alias, so the
-    existing files are also compared by identity rather than by path alone.
+    Destinations are compared after resolving, which follows a symlink even
+    when neither file exists yet. Without that, writing the first page would
+    create the second page's file and the second write would replace it,
+    losing one submission. Files that do exist are also compared by identity,
+    which catches a hard link sharing no path with its twin.
     """
-    seen_paths = set()
+    seen_paths = {}
     seen_files = {}
     for output in outputs:
-        if output in seen_paths:
+        resolved = output.resolve()
+        if resolved in seen_paths:
             raise ValueError(
-                "two generated pages share the destination %s" % output)
-        seen_paths.add(output)
+                "the generated pages %s and %s both lead to %s"
+                % (seen_paths[resolved], output, resolved))
+        seen_paths[resolved] = output
         try:
             status = output.stat()
         except OSError:
@@ -512,12 +517,15 @@ def build_dashboard(input_dir, output_path=None):
 def main(argv=None):
     parser = argparse.ArgumentParser(
         prog="python3 -m apr_dashboard.build_dashboard",
-        description="Render stored submission JSON files as one HTML page.")
+        description="Render stored submission JSON files as a linked set of "
+                    "HTML pages, starting from a block overview.")
     parser.add_argument("input_dir",
                         help="directory holding the submission JSON files")
     parser.add_argument("--output",
-                        help="where to write the page, default dashboard.html "
-                             "beside the input directory")
+                        help="where to write the entry page, default "
+                             "dashboard.html beside the input directory. The "
+                             "block and submission pages go in a folder named "
+                             "after it")
     args = parser.parse_args(argv)
 
     output, count = _build(args.input_dir, args.output)
