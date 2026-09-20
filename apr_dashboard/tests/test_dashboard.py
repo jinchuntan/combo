@@ -7,6 +7,7 @@ temporary directories and never touch a demo workspace.
 import contextlib
 import io
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -106,6 +107,28 @@ class DashboardTestCase(unittest.TestCase):
     def page(self, output_path=None):
         return Path(self.build(output_path)).read_text(encoding="utf-8")
 
+    def work_in(self, directory):
+        """Run the rest of a test from another working directory."""
+        start = os.getcwd()
+        self.addCleanup(os.chdir, start)
+        os.chdir(str(directory))
+
+    def link_or_skip(self, link, target):
+        """Point one name at another file, or skip where that is not allowed."""
+        try:
+            os.symlink(str(target), str(link))
+        except (OSError, NotImplementedError) as error:
+            self.skipTest("symlinks are not available here: %s" % error)
+        return link
+
+    def hard_link_or_skip(self, link, target):
+        """Give a file a second name, or skip where the filesystem refuses."""
+        try:
+            os.link(str(target), str(link))
+        except (OSError, NotImplementedError, AttributeError) as error:
+            self.skipTest("hard links are not available here: %s" % error)
+        return link
+
     def expect_failure(self, record_or_text, name="record.json"):
         """Build a throwaway directory holding one bad file and return the error."""
         directory = Path(tempfile.mkdtemp(dir=str(self.root)))
@@ -161,6 +184,92 @@ class TestOutputLocation(DashboardTestCase):
         self.write_record(apr_record())
         self.write_text("<p>stale page</p>", "dashboard.html")
         self.assertNotIn("stale page", self.page())
+
+
+class TestInputsAreNeverOverwritten(DashboardTestCase):
+    """The submission files are the records, so the page never lands on one."""
+
+    def test_an_output_equal_to_an_input_is_rejected(self):
+        records = [self.write_record(apr_record()), self.write_record(sta_record())]
+        before = [(path, path.read_bytes()) for path in records]
+        for target in records:
+            with self.subTest(target=target.name):
+                with self.assertRaises(ValueError) as caught:
+                    self.build(target)
+                self.assertIn(target.name, str(caught.exception))
+        for path, data in before:
+            self.assertEqual(path.read_bytes(), data)
+
+    def test_a_relative_alias_of_an_input_is_rejected(self):
+        record = self.write_record(apr_record())
+        before = record.read_bytes()
+        self.work_in(self.submissions)
+        with self.assertRaises(ValueError):
+            build_dashboard(".", record.name)
+        self.assertEqual(record.read_bytes(), before)
+
+    def test_an_unnormalised_alias_of_an_input_is_rejected(self):
+        record = self.write_record(apr_record())
+        before = record.read_bytes()
+        alias = self.submissions / "sub" / ".." / record.name
+        with self.assertRaises(ValueError):
+            self.build(alias)
+        self.assertEqual(record.read_bytes(), before)
+
+    def test_a_symlinked_output_pointing_at_an_input_is_rejected(self):
+        record = self.write_record(apr_record())
+        before = record.read_bytes()
+        alias = self.link_or_skip(self.root / "alias.html", record)
+        with self.assertRaises(ValueError):
+            self.build(alias)
+        self.assertEqual(record.read_bytes(), before)
+
+    def test_a_default_output_symlinked_to_an_input_is_rejected(self):
+        record = self.write_record(apr_record())
+        before = record.read_bytes()
+        self.link_or_skip(self.root / "dashboard.html", record)
+        with self.assertRaises(ValueError):
+            self.build()
+        self.assertEqual(record.read_bytes(), before)
+
+    def test_an_existing_hard_link_output_is_rejected(self):
+        record = self.write_record(apr_record())
+        before = record.read_bytes()
+        alias = self.hard_link_or_skip(self.root / "hardlink.html", record)
+        with self.assertRaises(ValueError):
+            self.build(alias)
+        self.assertEqual(record.read_bytes(), before)
+        self.assertEqual(alias.read_bytes(), before)
+
+    def test_the_cli_reports_nothing_when_the_output_is_an_input(self):
+        record = self.write_record(apr_record())
+        before = record.read_bytes()
+        stream = io.StringIO()
+        argv = ["prog", str(self.submissions), "--output", str(record)]
+        with mock.patch.object(sys, "argv", argv):
+            with contextlib.redirect_stdout(stream):
+                with self.assertRaises(ValueError):
+                    main()
+        self.assertEqual(stream.getvalue(), "")
+        self.assertEqual(record.read_bytes(), before)
+
+    def test_an_existing_page_can_still_be_rebuilt(self):
+        self.write_record(apr_record())
+        first = self.build()
+        Path(first).write_text("<p>stale page</p>\n", encoding="utf-8")
+        second = self.build()
+        self.assertEqual(second, first)
+        self.assertNotIn("stale page", Path(second).read_text(encoding="utf-8"))
+
+    def test_a_separate_html_output_inside_submissions_still_works(self):
+        record = self.write_record(apr_record())
+        before = record.read_bytes()
+        target = self.submissions / "view.html"
+        output = self.build(target)
+        self.assertEqual(Path(output), target)
+        self.assertIn("APR Timing Dashboard Prototype",
+                      target.read_text(encoding="utf-8"))
+        self.assertEqual(record.read_bytes(), before)
 
 
 class TestRendering(DashboardTestCase):

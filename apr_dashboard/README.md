@@ -115,8 +115,17 @@ fetches the JSON or anything else. That is why it opens correctly from a plain
 `file://` path.
 
 The JSON files stay the authoritative records and the page is only a view of
-them. Rerun the builder whenever the JSON inputs change, and the page is
-rebuilt from what is on disk at that moment. It does not refresh itself.
+them. The builder never writes over one of those records: an output that turns
+out to be a submission file is rejected before anything is created, whether it
+was named directly, reached through a relative path, or aliased by a symlink or
+a hard link. Rebuilding an ordinary `dashboard.html` is fine, and so is an
+explicitly chosen HTML file inside the `submissions` directory.
+
+Rerun the builder whenever the JSON inputs change, and the page is rebuilt from
+what is on disk at that moment. It does not refresh itself. The page is
+rendered in full before the output file is opened, so a rendering failure
+cannot truncate an existing page, but a failure part way through the write can
+still leave partial HTML. That is acceptable while nothing else reads the file.
 
 Every valid record is currently shown on its own card, which the page says in
 a notice at the top. Latest-valid selection, APR and STA precedence, stale-run

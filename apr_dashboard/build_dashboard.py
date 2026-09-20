@@ -183,7 +183,11 @@ def _display_order(entry):
 
 
 def _load_records(directory):
-    """Load every submission file sitting directly in the given directory."""
+    """Load every submission file sitting directly in the given directory.
+
+    Returns the records in display order and the paths they came from, because
+    the writer has to know which files it must never overwrite.
+    """
     paths = sorted(directory.glob("*.json"))
     if not paths:
         raise ValueError("no *.json submission files found in %s" % directory)
@@ -201,7 +205,30 @@ def _load_records(directory):
         entries.append((record, metrics))
 
     entries.sort(key=_display_order)
-    return entries
+    return entries, paths
+
+
+def _require_safe_output(output, inputs):
+    """Refuse to write the page over one of the records it just read.
+
+    The submission files are the authoritative records, so a destination that
+    turns out to be one of them is a mistake rather than a rebuild. Comparing
+    resolved paths covers direct, relative and symlinked destinations, and
+    samefile catches an existing hard link, which is a second name for the
+    same file and has no path in common with it.
+    """
+    output_exists = output.exists()
+    for path in inputs:
+        clashes = output == path.resolve()
+        if not clashes and output_exists:
+            try:
+                clashes = output.samefile(str(path))
+            except OSError:
+                clashes = False
+        if clashes:
+            raise ValueError(
+                "the output %s is the submission record %s, which must not be "
+                "overwritten" % (output, path))
 
 
 def _meta_rows(record):
@@ -343,14 +370,17 @@ def _build(input_dir, output_path):
     if not directory.is_dir():
         raise ValueError("%s is not an existing directory" % directory)
 
-    entries = _load_records(directory)
+    entries, inputs = _load_records(directory)
     if output_path is None:
         output = directory.parent / "dashboard.html"
     else:
         output = Path(output_path)
     output = output.resolve()
+    _require_safe_output(output, inputs)
 
-    # Render everything first, so a failure never leaves half a page behind.
+    # Rendering first keeps a rendering failure from truncating an existing
+    # page. A failure part way through the write can still leave partial HTML,
+    # which is acceptable while nothing else reads this file.
     page = _render_page(entries, directory)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(page, encoding="utf-8")
