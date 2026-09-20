@@ -1,3 +1,4 @@
+# Keep local demo runs, the real config and Python bytecode out of the repository.
 /demo_workspace/
 /dashboard_config.json
 __pycache__/

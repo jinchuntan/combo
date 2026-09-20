@@ -1,6 +1,5 @@
-"""APR dashboard submission package (v0.1).
+"""Build APR dashboard submissions from run directories and timing values.
 
-Step 1 provides the timing schema and its validators only; see
-``apr_dashboard.timing_schema``.  Metadata extraction, the submission
-session and JSON writing arrive in later steps.
+The package currently holds the timing schema validators and the run
+metadata helpers. The submission session that writes JSON comes later.
 """

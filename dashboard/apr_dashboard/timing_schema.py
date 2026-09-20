@@ -1,22 +1,8 @@
-"""Timing submission schema for the APR dashboard (v0.1).
+"""Define the timing measurements we accept and check their format.
 
-This module defines which timing measurements we accept from the report
-parser and validates their format.  It exposes two functions:
-
-    validate_item(key, value)   -- validate one key/value pair
-    validate_submission(data)   -- validate a whole metric dictionary
-
-Both return None when the input is valid and raise ValueError with an
-explanation when it is not.  Neither mutates its input and neither reads
-nor writes any file.
-
-Units
------
-WNS and TNS are slack values in nanoseconds (see TIMING_UNIT); NVP is a
-plain count of violating paths.  Nanoseconds are our v0.1 convention:
-the real Timing report parser must convert ps / us / s report values to
-nanoseconds before submitting them here.  This module cannot detect a
-wrong unit -- it only checks types and shapes.
+WNS and TNS are slack values in nanoseconds and NVP is a count of
+violating paths. The README lists every accepted key and explains why the
+parser has to convert its report units before submitting.
 """
 
 import math
@@ -43,12 +29,8 @@ KEY_PREFIX = "tmg"
 RPTFILE_FIELD = "rptfile"
 
 
-# ---------------------------------------------------------------------
-# PRIVATE HELPERS
-# ---------------------------------------------------------------------
-
 def _require_label(label, role, key):
-    """A scenario / path-group label: non-empty text without commas."""
+    """A scenario or path group label is non-empty text without commas."""
     if not isinstance(label, str):
         raise ValueError(
             "%s: %s label must be a string, got %s"
@@ -62,19 +44,19 @@ def _require_label(label, role, key):
 
 
 def _require_slack(value, name, key):
-    """WNS / TNS: a finite int or float.  Booleans and strings are not numbers."""
+    """WNS and TNS are finite ints or floats. Booleans and strings are not numbers."""
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise ValueError(
             "%s: %s must be an int or float in %s, got %r"
             % (key, name, TIMING_UNIT, value))
-    # Every int is finite; only floats can be NaN or +/-inf.
+    # Only floats can be NaN or infinite, so ints need no further check.
     if isinstance(value, float) and not math.isfinite(value):
         raise ValueError(
             "%s: %s must be a finite number, got %r" % (key, name, value))
 
 
 def _require_count(value, name, key):
-    """NVP: a non-negative int.  Booleans and floats are not counts."""
+    """NVP is a non-negative int. Booleans and floats are not counts."""
     if isinstance(value, bool) or not isinstance(value, int):
         raise ValueError(
             "%s: %s must be an int, got %r" % (key, name, value))
@@ -84,7 +66,7 @@ def _require_count(value, name, key):
 
 
 def _require_index_list(value, role, key):
-    """An index key value: a list of distinct labels."""
+    """An index key holds a list of distinct labels."""
     if not isinstance(value, list):
         raise ValueError(
             "%s: must be a list of %s labels, got %s"
@@ -99,7 +81,7 @@ def _require_index_list(value, role, key):
 
 
 def _require_rptfile(value, key):
-    """A report path: a non-empty string.  Existence is never checked."""
+    """A report path is a non-empty string. Its existence is never checked."""
     if not isinstance(value, str):
         raise ValueError(
             "%s: report path must be a string, got %s"
@@ -110,7 +92,7 @@ def _require_rptfile(value, key):
 
 
 def _require_check_values(check, value, key):
-    """A setup / hold value: exactly [WNS, TNS, NVP]."""
+    """A setup or hold value is exactly [WNS, TNS, NVP]."""
     wns_name, tns_name, nvp_name = CHECKS[check]
     names = "%s, %s, %s" % (wns_name, tns_name, nvp_name)
     if not isinstance(value, list):
@@ -126,18 +108,12 @@ def _require_check_values(check, value, key):
     _require_count(value[2], nvp_name, key)
 
 
-# ---------------------------------------------------------------------
-# PUBLIC VALIDATORS
-# ---------------------------------------------------------------------
-
 def validate_item(key, value):
-    """Validate one timing key/value pair.
+    """Validate one timing key and its value, returning None when it is valid.
 
-    Returns None when valid, raises ValueError otherwise.
-
-    Membership in tmg_scenarios / tmg_path_groups is deliberately NOT
-    checked here, so a caller may submit measurements in any order.
-    validate_submission() does that cross-check.
+    Membership in tmg_scenarios and tmg_path_groups is deliberately not
+    checked here so a caller may submit measurements in any order.
+    validate_submission does that cross-check.
     """
     if not isinstance(key, str):
         raise ValueError(
@@ -173,15 +149,13 @@ def validate_item(key, value):
 
 
 def validate_submission(data):
-    """Validate a whole timing metric dictionary.
+    """Validate a whole timing metric dictionary, returning None when it is valid.
 
-    Returns None when valid, raises ValueError otherwise.
-
-    Every entry must pass validate_item(), every referenced scenario and
-    path group must be declared in the index lists, and every scenario
-    carrying setup/hold measurements must also carry its report path.
-    Missing scenario/group combinations are allowed: an absent
-    measurement means "not submitted", never zero, pass or fail.
+    Every entry must pass validate_item, every referenced scenario and path
+    group must be declared in the index lists, and every scenario carrying
+    setup or hold measurements must also carry its report path. Missing
+    combinations are allowed because an absent measurement means it was not
+    submitted, never zero, pass or fail.
     """
     if not isinstance(data, dict):
         raise ValueError(
