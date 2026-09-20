@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SoC Physical Design Project Dashboard</title>
+  <style>
+    /* Minimalist & Compact Styling */
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 20px;
+      color: #333;
+      background-color: #fafafa;
+    }
+
+    h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    /* Toolbar for Zoom Controls */
+    .toolbar {
+      margin-bottom: 10px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .toolbar button {
+      padding: 4px 10px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      border: 1px solid #ccc;
+      background: #fff;
+      border-radius: 4px;
+    }
+
+    .toolbar button:hover {
+      background: #f0f0f0;
+    }
+
+    /* Zoom/Pan Wrapper Container */
+    .table-container {
+      width: 100%;
+      overflow: auto; /* Enables scrolling if data is wide */
+      border: 1px solid #e0e0e0;
+      background: #fff;
+      border-radius: 6px;
+    }
+
+    /* Minimalist Table Design (Smaller Font) */
+    table {
+      border-collapse: collapse;
+      font-size: 0.65rem; /* Smaller, dense font size */
+      text-align: center;
+      transform-origin: top left;
+      transition: transform 0.1s ease;
+    }
+
+    th, td {
+      border-bottom: 1px solid #eee;
+      border-right: 1px solid #f2f2f2;
+      padding: 2px 5px; /* Compact padding */
+      white-space: nowrap; /* Prevents awkward text wrapping in dense data */
+    }
+
+    th {
+      background-color: #f8f9fa;
+      font-weight: 600;
+      color: #555;
+      border-bottom: 2px solid #ddd;
+    }
+
+    /* Navigation Tabs & Tab Panes Styles */
+    .tab-nav {
+      background-color: #cccccc;
+      border-bottom: 1px solid #000000;
+      padding: 0 2rem;
+      display: flex;
+      gap: 0.2rem;
+    }
+
+    .tab-btn {
+      background: none;
+      padding: 0.5rem 0.25rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      position: relative;
+      transition: color 0.2s ease;
+    }
+
+    .tab-btn:hover {
+      color: #1535a1;
+    }
+
+    .tab-btn.active {
+      color: #1535a1;
+    }
+
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background-color: #d1d1d1;
+      border-radius: 3px 3px 0 0;
+    }
+
+    .tab-pane {
+      display: none;
+    }
+
+    .tab-pane.active {
+      display: block;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    /* Table links style */
+    .table-link {
+      color: #1d3bbf;
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.2s ease;
+    }
+
+    .table-link:hover {
+      color: #1d3bbf;
+      text-decoration: underline;
+    }
+
+    /* Version Section Header Row */
+    /*.version-header td {
+      background-color: #24292e;
+      color: white;
+      font-weight: 600;
+      padding: 8px 10px;
+    }
+
+    .version-header a {
+      color: #58a6ff;
+      text-decoration: none;
+    }
+
+    .version-header a:hover {
+      text-decoration: underline;
+    }*/
+
+    /* Subtle row hover effect */
+    tbody tr:not(.version-header):hover {
+      background-color: #f8f9fa;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Project Progress Dashboard</h2>
+
+  <!-- Horizontal Tabs Navigation -->
+  <nav class="tab-nav">
+    <button class="tab-btn active" onclick="switchTab(event, 'timing-tab')">Timing</button>
+    <button class="tab-btn" onclick="switchTab(event, 'physical-tab')">Physical</button>
+    <button class="tab-btn" onclick="switchTab(event, 'timing_drv-tab')">Timing DRV</button>
+    <button class="tab-btn" onclick="switchTab(event, 'drc-tab')">DRC</button>
+    <button class="tab-btn" onclick="switchTab(event, 'emir-tab')">EMIR</button>
+    <button class="tab-btn" onclick="switchTab(event, 'clp-tab')">CLP</button>
+    <button class="tab-btn" onclick="switchTab(event, 'log-tab')">LOG</button>
+    <button class="tab-btn" onclick="switchTab(event, 'runtime-tab')">RUNTIME</button>
+  </nav>
+
+  <!-- Dedicated Zoom Control Buttons -->
+  <div class="zoom-controls" style="margin-bottom: 15px; display: flex; gap: 10px;">
+    <button id="zoomInBtn" onclick="zoomIn()">Zoom In (+)</button>
+    <button id="zoomOutBtn" onclick="zoomOut()">Zoom Out (-)</button>
+    <button id="resetZoomBtn" onclick="resetZoom()">Reset Zoom</button>
+  </div>
+
+  <!-- Scrollable Wrapper for the Large Table -->
+  <!-- <div id="tableScrollContainer" style="overflow: auto; max-height: 600px; border: 1px solid #ccc;">
+    <div id="tableZoomWrapper" style="transform-origin: top left; transition: transform 0.2s ease;">
+      <table id="dynamicTable" border="1" style="border-collapse: collapse; width: 100%;">
+        <thead id="tableHead"></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div> -->
+
+  <!-- Main Controller -->
+  <main>
+
+    <!-- Tab 1: Timing -->
+    <div id="timing-tab" class="tab-pane active">
+      <div class="table-container" id="zoomContainer">
+        <table id="zoomable-table">
+          <thead id="timingTableHead"></thead>
+          <tbody id="timingTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab 2: Physical -->
+    <div id="physical-tab" class="tab-pane">
+    </div>
+
+    <!-- Tab 3: Timing DRV -->
+    <div id="timing_drv-tab" class="tab-pane">
+    </div>
+
+    <!-- Tab 4: DRC -->
+    <div id="drc-tab" class="tab-pane">
+    </div>
+
+    <!-- Tab 5:EMIR -->
+    <div id="emir-tab" class="tab-pane">
+      <div class="table-container" id="zoomContainer">
+        <table id="zoomable-table">
+          <thead id="emirTableHead"></thead>
+          <tbody id="emirTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Functions Script -->
+  <script>
+    function switchTab(evt, tabId) {
+      // Hide all tab panes
+      const panes = document.querySelectorAll('.tab-pane');
+      panes.forEach(pane => pane.classList.remove('active'));
+
+      // Remove active state from all buttons
+      const buttons = document.querySelectorAll('.tab-btn');
+      buttons.forEach(btn => btn.classList.remove('active'));
+
+      // Show the target tab and set button to active
+      document.getElementById(tabId).classList.add('active');
+      evt.currentTarget.classList.add('active');
+    }
+
+    function zoomIn() {
+      if (currentZoom < 2.0) {
+        currentZoom += 0.1;
+        applyZoom();
+      }
+    }
+
+    function zoomOut() {
+      if (currentZoom > 0.5) {
+        currentZoom -= 0.1;
+        applyZoom();
+      }
+    }
+
+    function resetZoom() {
+      currentZoom = 1.0;
+      applyZoom();
+    }
+
+    function applyZoom() {
+      const table = document.getElementById('zoomable-table');
+      if (table) {
+        table.style.zoom = currentZoom;
+      }
+    }
+
+
+  </script>
+
+  <!-- Timing table blueprint -->
+  <script>
+    function generateTableHeaders(groupData) {
+      const thead = document.getElementById('timingTableHead');
+      thead.innerHTML = ''; // Clear existing headers
+
+      // Create 3 rows of Headers
+      const row1 = document.createElement('tr');
+      const row2 = document.createElement('tr');
+      const row3 = document.createElement('tr');
+
+      // Fixed first two columns spanning 2 rows vertically
+      const th1 = document.createElement('th');
+      th1.rowSpan = 3;
+      th1.innerText = "Partition";
+      row1.appendChild(th1);
+
+      const th2 = document.createElement('th');
+      th2.rowSpan = 3;
+      th2.innerText = "Latest Run Tag";
+      row1.appendChild(th2);
+
+      // Loop through dynamic groups (e.g., Column 3, Column 4 groups)
+      groupData.forEach(group => {
+        const totalCols = group.subTitles.length * 3;
+        const mainTh = document.createElement('th');
+        mainTh.colSpan = totalCols; // Dynamic colspan!
+        mainTh.innerText = group.name;
+        row1.appendChild(mainTh);
+
+        group.subTitles.forEach(subTitle => {
+          const subTh = document.createElement('th');
+          subTh.colSpan = 3;
+          subTh.innerText = subTitle;
+          row2.appendChild(subTh);
+
+          // Third-tier titles
+          const thirdTierItems = ["WNS","TNS","NVP"];
+          thirdTierItems.forEach(item => {
+            const thirdTh = document.createElement('th');
+            thirdTh.innerText = item;
+            row3.appendChild(thirdTh);
+          });
+        });
+      });
+
+      thead.appendChild(row1);
+      thead.appendChild(row2);
+      thead.appendChild(row3);
+    }
+
+  function generateTableBody(groupData, bodyData) {
+    const tbody = document.getElementById('timingTableBody');
+    tbody.innerHTML = ''; // Clear existing body
+
+    bodyData.forEach(rowData => {
+      const tr = document.createElement('tr');
+
+      const tdPartition = document.createElement('td');
+      const aPartition = document.createElement('a');
+      const parId = encodeURIComponent(rowData.partition);
+      aPartition.href = `partition_v2.html?id=${parId}`;
+      aPartition.innerText = rowData.partition;
+      aPartition.target = '_blank';
+      aPartition.className = 'table-link';
+
+      tdPartition.appendChild(aPartition);
+      tr.appendChild(tdPartition);
+
+      const tdLatestRunTag = document.createElement('td');
+      tdLatestRunTag.innerText = rowData.latest_run_tag;
+      tr.appendChild(tdLatestRunTag);
+
+      // 2. Loop through groups and their sub-titles to add data cells
+      groupData.forEach(group => {
+        group.subTitles.forEach(subTitle => {
+          // Since each sub-title has 3 fixed third-tier columns,
+          // we expect 3 data values per sub-title here:
+          const values = rowData.values[group.name]?.[subTitle] || ['', '', ''];
+
+          values.forEach((val,index) => {
+            const td = document.createElement('td');
+            td.innerText = val;
+
+            const num = parseFloat(val);
+            if (!isNaN(num)) {
+              if (index === 2) {
+                if (num === 0) {
+                  td.style.color = 'green';
+                } else if (num > 0) {
+                  td.style.color = 'red';
+                }
+              } else {
+                if (num >= 0) {
+                  td.style.color = 'green';
+                } else if (num < 0) {
+                  td.style.color = 'red';
+                }
+              }
+            }
+
+            tr.appendChild(td);
+          });
+        });
+      });
+
+      tbody.appendChild(tr);
+    });
+  }
+
+  // Section to parse Timing Data Structure JSON for the Body:
+  // Fetch the generated structured JSON file from your server/directory
+  // const response = await fetch('par_summary.json');
+  // if (!response.ok) {
+  //   throw new Error('Failed to load JSON file');
+  // }
+  // const parSummary = await response.json();
+  const parSummary = [
+    { "partition": "par_ddr", "latest_run_tag": "R080", "values":
+      { "Setup": { "in2reg": [-0.16,-1.89,60], "Summary": [-0.17,-11.12,135] },
+        "Hold": { "Summary": [0,0,0] }
+      }
+    },
+    { "partition": "par_usb", "latest_run_tag": "R080", "values":
+      { "Setup": { "mem2reg": [0.89,0,0], "Summary": [-19.23,-256.67,30], "reg2out": ["","",235] },
+        "Hold": { "in2out": [-0.34,-0.67,2], "reg2out": [0,0,0] }
+      }
+    }
+  ];
+
+  // Timing Groups for the Header:
+  const timingGroups = [
+    { "name": "Setup", "subTitles": ["Summary","reg2reg","reg2out","in2reg","in2out","reg2mem","mem2reg"] },
+    { "name": "Hold", "subTitles": ["Summary","reg2reg","reg2out","in2reg","in2out","reg2mem","mem2reg"] }
+  ];
+
+  generateTableHeaders(timingGroups);
+  generateTableBody(timingGroups, parSummary);
+
+
+  </script>
+
+</body>
+</html>

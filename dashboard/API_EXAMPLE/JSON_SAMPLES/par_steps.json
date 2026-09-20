@@ -1,0 +1,194 @@
+{
+  "par_ddr": [
+    {
+      "run_tag": "R080_20260606",
+      "stages": [
+        {
+          "stage": "init",
+          "timestamp": "11/03/26 08:23:23",
+          "runtime": "00:27",
+          "values": {
+            "Setup": {
+              "in2reg": [-0.16, -1.89, 60],
+              "Summary": [-0.17, -11.12, 135],
+              "reg2reg": [-0.26, -13.18, 211]
+            },
+            "Hold": {
+              "Summary": [0, 0, 0],
+              "in2out": [-0.12, -1.14, 13]
+            }
+          }
+        },
+        {
+          "stage": "floorplan",
+          "timestamp": "11/03/26 13:12:45",
+          "runtime": "00:45",
+          "values": {
+            "Setup": {
+              "in2reg": [-0.16, -1.89, 60],
+              "Summary": [-0.17, -11.12, 135],
+              "reg2reg": [-0.26, -13.18, 211]
+            },
+            "Hold": {
+              "Summary": [0, 0, 0],
+              "in2out": [-0.12, -1.14, 13]
+            }
+          }
+        },
+        {
+          "stage": "place_opt",
+          "timestamp": "13/03/26 23:39:08",
+          "runtime": "02:30",
+          "values": {
+            "Setup": {
+              "in2reg": [-0.16, -1.89, 60],
+              "Summary": [-0.17, -11.12, 135],
+              "reg2reg": [-0.26, -13.18, 211]
+            },
+            "Hold": {
+              "Summary": [0, 0, 0],
+              "in2out": [-0.12, -1.14, 13]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "run_tag": "R051_20260303",
+      "stages": [
+        {
+          "stage": "init",
+          "timestamp": "03/03/26 08:23:23",
+          "runtime": "00:23",
+          "values": {
+            "Setup": {
+              "in2reg": [-0.16, -1.89, 60],
+              "Summary": [-0.17, -11.12, 135],
+              "reg2reg": [-0.26, -13.18, 211]
+            },
+            "Hold": {
+              "Summary": [0, 0, 0],
+              "in2out": [-0.12, -1.14, 13]
+            }
+          }
+        },
+        {
+          "stage": "floorplan",
+          "timestamp": "03/03/26 13:12:45",
+          "runtime": "00:47",
+          "values": {
+            "Setup": {
+              "in2reg": [-0.16, -1.89, 60],
+              "Summary": [-0.17, -11.12, 135],
+              "reg2reg": [-0.26, -13.18, 211]
+            },
+            "Hold": {
+              "Summary": [0, 0, 0],
+              "in2out": [-0.12, -1.14, 13]
+            }
+          }
+        },
+        {
+          "stage": "place_opt",
+          "timestamp": "05/03/26 23:39:08",
+          "runtime": "03:45",
+          "values": {
+            "Setup": {},
+            "Hold": {}
+          }
+        },
+        {
+          "stage": "clock_opt",
+          "timestamp": "08/03/26 03:03:11",
+          "runtime": "32:21",
+          "values": {
+            "Setup": {},
+            "Hold": {}
+          }
+        },
+        {
+          "stage": "clock_opt_v2",
+          "timestamp": "09/03/26 21:44:58",
+          "runtime": "25:13",
+          "values": {
+            "Setup": {},
+            "Hold": {}
+          }
+        },
+        {
+          "stage": "route_opt",
+          "timestamp": "12/03/26 19:05:04",
+          "runtime": "18:56",
+          "values": {
+            "Setup": {},
+            "Hold": {}
+          }
+        },
+        {
+          "stage": "chipfinish",
+          "timestamp": "13/03/26 15:24:36",
+          "runtime": "03:19",
+          "values": {
+            "Setup": {},
+            "Hold": {}
+          }
+        }
+      ]
+    }
+  ],
+  "par_usb": [
+    {
+      "run_tag": "R080_20260808",
+      "stages": [
+        {
+          "stage": "init",
+          "timestamp": "11/03/26 08:23:23",
+          "runtime": "00:27",
+          "values": {
+            "Setup": {
+              "in2reg": [-0.16, -1.89, 60],
+              "Summary": [-0.17, -11.12, 135],
+              "reg2reg": [-0.26, -13.18, 211]
+            },
+            "Hold": {
+              "Summary": [0, 0, 0],
+              "in2out": [-0.12, -1.14, 13]
+            }
+          }
+        },
+        {
+          "stage": "floorplan",
+          "timestamp": "11/03/26 13:12:45",
+          "runtime": "00:45",
+          "values": {
+            "Setup": {
+              "in2reg": [-0.16, -1.89, 60],
+              "Summary": [-0.17, -11.12, 135],
+              "reg2reg": [-0.26, -13.18, 211]
+            },
+            "Hold": {
+              "Summary": [0, 0, 0],
+              "in2out": [-0.12, -1.14, 13]
+            }
+          }
+        },
+        {
+          "stage": "place_opt",
+          "timestamp": "13/03/26 23:39:08",
+          "runtime": "02:30",
+          "values": {
+            "Setup": {
+              "in2reg": [-0.16, -1.89, 60],
+              "Summary": [-0.17, -11.12, 135],
+              "reg2reg": [-0.26, -13.18, 211]
+            },
+            "Hold": {
+              "Summary": [0, 0, 0],
+              "in2out": [-0.12, -1.14, 13]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

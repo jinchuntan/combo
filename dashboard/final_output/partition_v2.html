@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Partition</title>
+  <style>
+    /* Minimalist & Compact Styling */
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 20px;
+      color: #333;
+      background-color: #fafafa;
+    }
+
+    h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    /* Toolbar for Zoom Controls */
+    .toolbar {
+      margin-bottom: 10px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .toolbar button {
+      padding: 4px 10px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      border: 1px solid #ccc;
+      background: #fff;
+      border-radius: 4px;
+    }
+
+    .toolbar button:hover {
+      background: #f0f0f0;
+    }
+
+    /* Zoom/Pan Wrapper Container */
+    .table-container {
+      width: 100%;
+      overflow: auto; /* Enables scrolling if data is wide */
+      border: 1px solid #e0e0e0;
+      background: #fff;
+      border-radius: 6px;
+    }
+
+    /* Minimalist Table Design (Smaller Font) */
+    table {
+      border-collapse: collapse;
+      font-size: 0.65rem; /* Smaller, dense font size */
+      text-align: center;
+      transform-origin: top left;
+      transition: transform 0.1s ease;
+    }
+
+    th, td {
+      border-bottom: 1px solid #eee;
+      border-right: 1px solid #f2f2f2;
+      padding: 3px 5px; /* Compact padding */
+      white-space: nowrap; /* Prevents awkward text wrapping in dense data */
+    }
+
+    th {
+      background-color: #f8f9fa;
+      font-weight: 600;
+      color: #555;
+      border-bottom: 2px solid #ddd;
+    }
+
+    /* Navigation Tabs & Tab Panes Styles */
+    .tab-nav {
+      background-color: #cccccc;
+      border-bottom: 1px solid #000000;
+      padding: 0 2rem;
+      display: flex;
+      gap: 0.2rem;
+    }
+
+    .tab-btn {
+      background: none;
+      padding: 0.5rem 0.25rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      position: relative;
+      transition: color 0.2s ease;
+    }
+
+    .tab-btn:hover {
+      color: #1535a1;
+    }
+
+    .tab-btn.active {
+      color: #1535a1;
+    }
+
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background-color: #d1d1d1;
+      border-radius: 3px 3px 0 0;
+    }
+
+    .tab-pane {
+      display: none;
+    }
+
+    .tab-pane.active {
+      display: block;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    /* Table links style */
+    .table-link {
+      color: #1d3bbf;
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.2s ease;
+    }
+
+    .table-link:hover {
+      color: #1d3bbf;
+      text-decoration: underline;
+    }
+
+    /* Version Section Header Row */
+    /*.version-header td {
+      background-color: #24292e;
+      color: white;
+      font-weight: 600;
+      padding: 8px 10px;
+    }
+
+    .version-header a {
+      color: #58a6ff;
+      text-decoration: none;
+    }
+
+    .version-header a:hover {
+      text-decoration: underline;
+    }*/
+
+    /* Subtle row hover effect */
+    tbody tr:not(.version-header):hover {
+      background-color: #f8f9fa;
+    }
+  </style>
+</head>
+<body>
+
+  <h2 id="par-name">Loading Partition...</h2>
+
+  <!-- Dedicated Zoom Control Buttons -->
+  <div class="zoom-controls" style="margin-bottom: 15px; display: flex; gap: 10px;">
+    <button id="zoomInBtn" onclick="zoomIn()">Zoom In (+)</button>
+    <button id="zoomOutBtn" onclick="zoomOut()">Zoom Out (-)</button>
+    <button id="resetZoomBtn" onclick="resetZoom()">Reset Zoom</button>
+  </div>
+
+  <!-- Scrollable Wrapper for the Large Table -->
+  <div class="table-container" id="tableScrollContainer">
+    <table id="zoomable-table" border="1" style="border-collapse: collapse; width: 100%;">
+      <thead id="tableHead"></thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+  <!-- Functions Script -->
+  <script>
+
+    function zoomIn() {
+      if (currentZoom < 2.0) {
+        currentZoom += 0.1;
+        applyZoom();
+      }
+    }
+
+    function zoomOut() {
+      if (currentZoom > 0.5) {
+        currentZoom -= 0.1;
+        applyZoom();
+      }
+    }
+
+    function resetZoom() {
+      currentZoom = 1.0;
+      applyZoom();
+    }
+
+    function applyZoom() {
+      const table = document.getElementById('zoomable-table');
+      if (table) {
+        table.style.zoom = currentZoom;
+      }
+    }
+
+  </script>
+
+  <!-- Timing table blueprint -->
+  <script>
+  function generateTableHeaders(groupData) {
+    const thead = document.getElementById('tableHead');
+    thead.innerHTML = ''; // Clear existing headers
+
+    // Create 3 rows of Headers
+    const row1 = document.createElement('tr');
+    const row2 = document.createElement('tr');
+    const row3 = document.createElement('tr');
+
+    // Fixed first four columns spanning 2 rows vertically
+    const th_four = ["Run Tag", "Stage", "Timestamp", "Runtime"];
+    th_four.forEach(titleText => {
+      const th = document.createElement('th');
+      th.rowSpan = 3;
+      th.innerText = titleText;
+      row1.appendChild(th);
+    });
+
+    // Loop through dynamic groups
+    groupData.forEach(group => {
+      const totalCols = group.subTitles.length * 3;
+      const mainTh = document.createElement('th');
+      mainTh.colSpan = totalCols; // Dynamic colspan!
+      mainTh.innerText = group.name;
+      row1.appendChild(mainTh);
+
+      group.subTitles.forEach(subTitle => {
+        const subTh = document.createElement('th');
+        subTh.colSpan = 3;
+        subTh.innerText = subTitle;
+        row2.appendChild(subTh);
+
+        // Third-tier titles
+        const thirdTierItems = ["WNS","TNS","NVP"];
+        thirdTierItems.forEach(item => {
+          const thirdTh = document.createElement('th');
+          thirdTh.innerText = item;
+          row3.appendChild(thirdTh);
+        });
+      });
+    });
+
+    thead.appendChild(row1);
+    thead.appendChild(row2);
+    thead.appendChild(row3);
+  }
+
+  function generateTableBody(groupData, bodyData) {
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = ''; // Clear existing body
+
+    Object.entries(bodyData).forEach(([par,version]) => {
+      version.forEach(groupRow => {
+        // groupRow contains multiple items for the second column (e.g., an array of sub-items)
+        const versionStages = groupRow.stages; // Array of items for column 2
+        const rowSpanCount = versionStages.length;
+
+        versionStages.forEach((stage, index) => {
+          const tr = document.createElement('tr');
+
+          // 1. Only add the first column (with rowspan) on the VERY FIRST row of this group
+          if (index === 0) {
+            const tdRunTag = document.createElement('td');
+            tdRunTag.rowSpan = rowSpanCount; // Dynamic rowspan based on second column elements
+            tdRunTag.innerText = groupRow.run_tag;
+            tr.appendChild(tdRunTag);
+          }
+
+          // 2. Add the second, third, and fourth singular columns normally for every row
+          const tdStage = document.createElement('td');
+          // tdStage.innerText = stage.stage;
+
+          // Add link styling as configured previously
+          const uniqueId = `${par}_${groupRow.run_tag}_${stage.stage}`;
+
+          const aStage = document.createElement('a');
+          aStage.href = `stage_ss_v2.html?id=${encodeURIComponent(uniqueId)}`;
+          aStage.innerText = stage.stage;
+          // aRunTag.target = '_blank';
+          aStage.className = 'table-link';
+          aStage.onclick = function(e) {
+            e.preventDefault();
+            // Define popup dimensions and properties
+            const width = 600;
+            const height = 400;
+            const left = (window.innerWidth - width) / 2;
+            const top = (window.innerHeight - height) / 2;
+            const windowFeatures = `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`;
+            window.open(this.href, 'PopupDetailsWindow', windowFeatures); // Open the popup window
+          };
+          tdStage.appendChild(aStage);
+          tr.appendChild(tdStage);
+
+          const tdTimestamp = document.createElement('td');
+          tdTimestamp.innerText = stage.timestamp;
+          tr.appendChild(tdTimestamp);
+
+          const tdRuntime = document.createElement('td');
+          tdRuntime.innerText = stage.runtime;
+          tr.appendChild(tdRuntime);
+
+          // 3. Loop through remaining dynamic groups & color-code numbers
+          groupData.forEach(group => {
+            group.subTitles.forEach(subTitle => {
+              const values = stage.values[group.name]?.[subTitle] || ['', '', ''];
+
+              values.forEach((val, valIndex) => {
+                const td = document.createElement('td');
+
+                const targetCell = (subTitle === 'Summary' && valIndex === 0);
+                if (targetCell && val !== '') {
+                  // Build hyperlink if the value is under Summary first index
+                  const stageLink = document.createElement('a'); // Create hyperlink
+                  stageLink.href = `stages_v2.html?id=${encodeURIComponent(uniqueId)}`;
+                  stageLink.innerText = val;
+                  stageLink.target = '_blank';
+                  stageLink.className = 'table-link';
+                  td.appendChild(stageLink);
+                } else {
+                  td.innerText = val;
+                }
+
+                const num = parseFloat(val);
+                if (!isNaN(num)) {
+                  if (valIndex === 2) {
+                    if (num === 0) {
+                      td.style.color = 'green';
+                    } else if (num > 0) {
+                      td.style.color = 'red';
+                    }
+                  } else {
+                    if (num >= 0) {
+                      td.style.color = 'green';
+                    } else if (num < 0) {
+                      td.style.color = 'red';
+                    }
+                  }
+                }
+                tr.appendChild(td);
+              });
+            });
+          });
+
+          tbody.appendChild(tr);
+        });
+      });
+    });
+  }
+
+  // Section to parse Timing Data Structure JSON for the Body:
+  // Fetch the generated structured JSON file from your server/directory
+  // const response = await fetch('par_steps.json');
+  // if (!response.ok) {
+  //   throw new Error('Failed to load JSON file');
+  // }
+  // const parAPRTiming = await response.json();
+  const parAPRTiming = {
+  "par_ddr": [
+    { "run_tag": "R080_20260606", "stages": [
+      { "stage": "init", "timestamp": "11/03/26 08:23:23", "runtime": "00:27", "values":
+        { "Setup": { "in2reg": [-0.16,-1.89,60], "Summary": [-0.17,-11.12,135], "reg2reg": [-0.26,-13.18,211] },
+          "Hold": { "Summary": [0,0,0], "in2out": [-0.12,-1.14,13] }
+        }
+      },
+      { "stage": "floorplan", "timestamp": "11/03/26 13:12:45", "runtime": "00:45", "values":
+        { "Setup": { "in2reg": [-0.16,-1.89,60], "Summary": [-0.17,-11.12,135], "reg2reg": [-0.26,-13.18,211] },
+          "Hold": { "Summary": [0,0,0], "in2out": [-0.12,-1.14,13] }
+        }
+      },
+      { "stage": "place_opt", "timestamp": "13/03/26 23:39:08", "runtime": "02:30", "values":
+        { "Setup": { "in2reg": [-0.16,-1.89,60], "Summary": [-0.17,-11.12,135], "reg2reg": [-0.26,-13.18,211] },
+          "Hold": { "Summary": [0,0,0], "in2out": [-0.12,-1.14,13] }
+        }
+      }]
+    },
+    { "run_tag": "R051_20260303", "stages": [
+      { "stage": "init", "timestamp": "03/03/26 08:23:23", "runtime": "00:23", "values":
+        { "Setup": { "in2reg": [-0.16,-1.89,60], "Summary": [-0.17,-11.12,135], "reg2reg": [-0.26,-13.18,211] },
+          "Hold": { "Summary": [0,0,0], "in2out": [-0.12,-1.14,13] }
+        }
+      },
+      { "stage": "floorplan", "timestamp": "03/03/26 13:12:45", "runtime": "00:47", "values":
+        { "Setup": { "in2reg": [-0.16,-1.89,60], "Summary": [-0.17,-11.12,135], "reg2reg": [-0.26,-13.18,211] },
+          "Hold": { "Summary": [0,0,0], "in2out": [-0.12,-1.14,13] }
+        }
+      },
+      { "stage": "place_opt", "timestamp": "05/03/26 23:39:08", "runtime": "03:45", "values":
+        { "Setup": {}, "Hold": {}
+        }
+      },
+      { "stage": "clock_opt", "timestamp": "08/03/26 03:03:11", "runtime": "32:21", "values":
+        { "Setup": {}, "Hold": {}
+        }
+      },
+      { "stage": "clock_opt_v2", "timestamp": "09/03/26 21:44:58", "runtime": "25:13", "values":
+        { "Setup": {}, "Hold": {}
+        }
+      },
+      { "stage": "route_opt", "timestamp": "12/03/26 19:05:04", "runtime": "18:56", "values":
+        { "Setup": {}, "Hold": {}
+        }
+      },
+      { "stage": "chipfinish", "timestamp": "13/03/26 15:24:36", "runtime": "03:19", "values":
+        { "Setup": {}, "Hold": {}
+        }
+      }]
+    }],
+  "par_usb": [
+    { "run_tag": "R080_20260808", "stages": [
+      { "stage": "init", "timestamp": "11/03/26 08:23:23", "runtime": "00:27", "values":
+        { "Setup": { "in2reg": [-0.16,-1.89,60], "Summary": [-0.17,-11.12,135], "reg2reg": [-0.26,-13.18,211] },
+          "Hold": { "Summary": [0,0,0], "in2out": [-0.12,-1.14,13] }
+        }
+      },
+      { "stage": "floorplan", "timestamp": "11/03/26 13:12:45", "runtime": "00:45", "values":
+        { "Setup": { "in2reg": [-0.16,-1.89,60], "Summary": [-0.17,-11.12,135], "reg2reg": [-0.26,-13.18,211] },
+          "Hold": { "Summary": [0,0,0], "in2out": [-0.12,-1.14,13] }
+        }
+      },
+      { "stage": "place_opt", "timestamp": "13/03/26 23:39:08", "runtime": "02:30", "values":
+        { "Setup": { "in2reg": [-0.16,-1.89,60], "Summary": [-0.17,-11.12,135], "reg2reg": [-0.26,-13.18,211] },
+          "Hold": { "Summary": [0,0,0], "in2out": [-0.12,-1.14,13] }
+        }
+      }]
+    }]
+  };
+
+  // Example usage:
+  const timingGroups = [
+    { name: "Setup", subTitles: ["Summary","reg2reg","reg2out","in2reg","in2out","reg2mem","mem2reg"] },
+    { name: "Hold", subTitles: ["Summary","reg2reg","reg2out","in2reg","in2out","reg2mem","mem2reg"] }
+  ];
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const parId = urlParams.get('id');
+  let displayTitle = "Overview Dashboard";
+
+  generateTableHeaders(timingGroups);
+
+  if (parId) {
+    if (parAPRTiming[parId]) {
+      currentPar = { [parId]: parAPRTiming[parId] };
+      displayTitle = String(parId) ;
+    }
+  } else {
+    currentPar = parAPRTiming;
+    displayTitle = "All Records Overview" ;
+  }
+
+  document.title = displayTitle;
+  const headingElement = document.getElementById('par-name');
+  if (headingElement) {
+    headingElement.innerText = displayTitle;
+  }
+  generateTableBody(timingGroups,currentPar);
+  </script>
+
+</body>
+</html>

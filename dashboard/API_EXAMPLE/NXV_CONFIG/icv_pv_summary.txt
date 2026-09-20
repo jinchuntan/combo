@@ -1,0 +1,72 @@
+[nigel.tan@gacs-004 NXV_CONFIG]$ cat icv_pv_summary.txt
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+Time    :               15:02:08
+Date    :               08/20/2026
+-path   :               /proj/sandbox/huipeng.ong/ICV_RUNDIR/test/pv_results
+-output :               /home/huipeng.ong/Cursor_misc_run
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+RESULTS files:
+  drc  -> /proj/sandbox/huipeng.ong/ICV_RUNDIR/test/pv_results/drc/GoLd.RESULTS
+  lvs  -> /proj/sandbox/huipeng.ong/ICV_RUNDIR/test/pv_results/lvs/GoLd.RESULTS
+  via  -> /proj/sandbox/huipeng.ong/ICV_RUNDIR/test/pv_results/via/GoLd.RESULTS
+  perc -> /proj/sandbox/huipeng.ong/ICV_RUNDIR/test/pv_results/perc/output_GoLd/GoLd.RESULTS
+
+
+TABLE 1: Violation Count per Flow
+        +--------------+--------------------------+
+        | Flow         | Violation Count          |
+        +--------------+--------------------------+
+        | DRC          | 97123                    |
+        +--------------+--------------------------+
+        | LVS          | Extraction: 742          |
+        |              | Compare: 20334           |
+        +--------------+--------------------------+
+        | VIA          | 4872                     |
+        +--------------+--------------------------+
+        | PERC         | 0                        |
+        +--------------+--------------------------+
+
+
+TABLE 2: Violation Count by Layer
+        +--------------+--------------------------+
+        | Layer        | Violation Count          |
+        +--------------+--------------------------+
+        | Base         | 97123                    |
+        +--------------+--------------------------+
+        | M1           | 0                        |
+        +--------------+--------------------------+
+        | VIA1         | 4642                     |
+        +--------------+--------------------------+
+        | M2           | 0                        |
+        +--------------+--------------------------+
+        | VIA2         | 230                      |
+        +--------------+--------------------------+
+        | M3           | 0                        |
+        +--------------+--------------------------+
+        | VIA3         | 0                        |
+        +--------------+--------------------------+
+        | M4           | 0                        |
+        +--------------+--------------------------+
+        | VIA4         | 0                        |
+        +--------------+--------------------------+
+        | M5           | 0                        |
+        +--------------+--------------------------+
+        | VIA5         | 0                        |
+        +--------------+--------------------------+
+        | M6           | 0                        |
+        +--------------+--------------------------+
+        | VIA6         | 0                        |
+        +--------------+--------------------------+
+        | M7           | 0                        |
+        +--------------+--------------------------+
+        | VIA7         | 0                        |
+        +--------------+--------------------------+
+        | M8           | 0                        |
+        +--------------+--------------------------+
+        | VIA8         | 0                        |
+        +--------------+--------------------------+
+        | M9           | 0                        |
+        +--------------+--------------------------+
+        | RV           | 0                        |
+        +--------------+--------------------------+

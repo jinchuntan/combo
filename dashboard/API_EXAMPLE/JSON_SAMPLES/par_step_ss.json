@@ -1,0 +1,49 @@
+{
+  "par_ddr": [
+    {
+      "run_tag": "R080_20260606",
+      "step": "init",
+      "snapshots": [
+        {
+          "snapshot_title": "Place Opt Congestion",
+          "snapshot_path": "/proj/sandbox/guangye.leong/DASHBOARD/snapshots/place_opt_congestion.png"
+        },
+        {
+          "snapshot_title": "Route Opt Congestion",
+          "snapshot_path": "/proj/sandbox/guangye.leong/DASHBOARD/snapshots/route_opt_congestion.png"
+        },
+      ]
+    },
+    {
+      "run_tag": "R080_20260606",
+      "step": "floorplan",
+      "snapshots": []
+    },
+    {
+      "run_tag": "R051_20260603",
+      "step": "init",
+      "snapshots": []
+    }
+  ],
+  "par_usb": [
+    {
+      "run_tag": "R080_20260808",
+      "step": "place_opt",
+      "snapshots": [
+        {
+          "snapshot_title": "Place Opt Congestion",
+          "snapshot_path": "/proj/sandbox/guangye.leong/DASHBOARD/snapshots/place_opt_congestion.png"
+        },
+        {
+          "snapshot_title": "Route Opt Congestion",
+          "snapshot_path": "/proj/sandbox/guangye.leong/DASHBOARD/snapshots/route_opt_congestion.png"
+        },
+      ]
+    },
+    {
+      "run_tag": "R080_20260808",
+      "step": "floorplan",
+      "snapshots": []
+    }
+  ]
+}

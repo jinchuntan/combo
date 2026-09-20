@@ -1,0 +1,154 @@
+{
+  "par_ddr": [
+    {
+      "run_tag": "R080_20260606",
+      "step": "init",
+      "scenarios": [
+        {
+          "scenario": "FUNC_FF",
+          "max_trans": "0.0",
+          "max_cap": "0.0",
+          "min_pulse_width": "0.0",
+          "values": {
+            "Setup": {
+              "in2reg": [-0.16, -1.89, 60],
+              "Summary": [-0.17, -11.12, 135],
+              "reg2reg": [-0.26, -13.18, 211]
+            },
+            "Hold": {
+              "Summary": [0, 0, 0],
+              "in2out": [-0.12, -1.14, 13]
+            }
+          }
+        },
+        {
+          "scenario": "FUNC_SS",
+          "max_trans": "0.0",
+          "max_cap": "0.0",
+          "min_pulse_width": "0.0",
+          "values": {
+            "Setup": {
+              "in2reg": [-0.16, -1.89, 60],
+              "Summary": [-0.17, -11.12, 135],
+              "reg2reg": [-0.26, -13.18, 211]
+            },
+            "Hold": {
+              "Summary": [0, 0, 0],
+              "in2out": [-0.12, -1.14, 13]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "run_tag": "R080_20260606",
+      "step": "floorplan",
+      "scenarios": [
+        {
+          "scenario": "FUNC_FF",
+          "max_trans": "-1.22",
+          "max_cap": "-0.89",
+          "min_pulse_width": "-0.0012",
+          "values": {
+            "Setup": {
+              "in2reg": [-0.19, -23.44, 366],
+              "Summary": [-1.78, -345.99, 1289],
+              "reg2reg": [-0.26, -13.18, 211]
+            },
+            "Hold": {
+              "Summary": [0, 0, 0],
+              "in2out": [-0.12, -1.14, 13]
+            }
+          }
+        },
+        {
+          "scenario": "FUNC_SS",
+          "max_trans": "-0.34",
+          "max_cap": "-0.09",
+          "min_pulse_width": "-0.0001",
+          "values": {
+            "Setup": {
+              "in2reg": [-0.48, -12.45, 92],
+              "Summary": [-0.17, -11.12, 135],
+              "reg2reg": [-0.26, -13.18, 211]
+            },
+            "Hold": {
+              "Summary": [-4.59, -232.18, 298],
+              "mem2reg": [-0.01, -0.07, 7],
+              "reg2out": [-1.23, -144.232, 1546]
+            }
+          }
+        },
+        {
+          "scenario": "SHIFT_SS",
+          "max_trans": "0.0",
+          "max_cap": "-0.12",
+          "min_pulse_width": "0.0",
+          "values": {}
+        }
+      ]
+    },
+    {
+      "run_tag": "R080_20260606",
+      "step": "place_opt",
+      "scenarios": [
+        {
+          "scenario": "FUNC_FF",
+          "max_trans": "0.0",
+          "max_cap": "0.0",
+          "min_pulse_width": "0.0",
+          "values": {}
+        },
+        {
+          "scenario": "FUNC_SS",
+          "max_trans": "0.0",
+          "max_cap": "0.0",
+          "min_pulse_width": "0.0",
+          "values": {}
+        }
+      ]
+    },
+    {
+      "run_tag": "R080_20260606",
+      "step": "clock_opt",
+      "scenarios": []
+    },
+    {
+      "run_tag": "R080_20260606",
+      "step": "clock_opt_v2",
+      "scenarios": []
+    },
+    {
+      "run_tag": "R080_20260606",
+      "step": "route_opt",
+      "scenarios": []
+    },
+    {
+      "run_tag": "R080_20260606",
+      "step": "chipfinish_opt",
+      "scenarios": []
+    }
+  ],
+  "par_usb": [
+    {
+      "run_tag": "R051_20260603",
+      "step": "init",
+      "scenarios": [
+        {
+          "scenario": "FUNC_FF",
+          "max_trans": "0",
+          "max_cap": "0",
+          "min_pulse_width": "0",
+          "values": {}
+        },
+        {
+          "scenario": "FUNC_SS",
+          "max_trans": "0",
+          "max_cap": "0",
+          "min_pulse_width": "0",
+          "values": {}
+        }
+      ]
+    }
+  ]
+}

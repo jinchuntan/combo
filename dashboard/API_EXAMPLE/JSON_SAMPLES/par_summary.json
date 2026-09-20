@@ -1,0 +1,30 @@
+[
+  {
+    "partition": "par_ddr",
+    "latest_run_tag": "R080_20260606",
+    "values": {
+      "Setup": {
+        "in2reg": [-0.16, -1.89, 60],
+        "Summary": [-0.17, -11.12, 135]
+      },
+      "Hold": {
+        "Summary": [0, 0, 0]
+      }
+    }
+  },
+  {
+    "partition": "par_usb",
+    "latest_run_tag": "R080_20260808",
+    "values": {
+      "Setup": {
+        "mem2reg": [0.89, 0, 0],
+        "Summary": [-19.23, -256.67, 30],
+        "reg2out": ["", "", 235]
+      },
+      "Hold": {
+        "in2out": [-0.34, -0.67, 2],
+        "reg2out": [0, 0, 0]
+      }
+    }
+  }
+]

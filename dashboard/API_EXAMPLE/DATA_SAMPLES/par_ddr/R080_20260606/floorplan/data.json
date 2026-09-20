@@ -1,0 +1,19 @@
+{
+  "block_name": "par_ddr",
+  "run_tag": "R080_20260606",
+  "run_area": "/proj/sandbox/guangye.leong/GA-PION1/par_ddr/R080_20260606/floorplan",
+  "entry_id": "par_ddr_R080_20260606_floorplan",
+  "date_creation": "2026-06-08 10:09:34",
+  "step": "floorplan",
+  "timestamp": "2026-06-07 21:30:29",
+  "runtime": "01:33:21",
+  "scenarios": ["FUNC_FF", "FUNC_SS", "SHIFT_SS"],
+  "path_groups": ["reg2reg", "reg2out", "in2reg", "in2out", "reg2mem", "mem2reg"],
+  "FUNC_FF,max_trans": "-0.012",
+  "FUNC_FF,max_cap": "-0.003",
+  "FUNC_FF,reg2reg,setup": ["-0.02", "-0.015", "10"],
+  "FUNC_FF,reg2out,setup": ["-0.23", "-1.143", "25"],
+  "FUNC_FF,in2reg,setup": ["0.012", "0.0", "0"],
+  "FUNC_SS,reg2reg,setup": ["-0.134", "-1.35", "147"],
+  "FUNC_SS,reg2out,setup": ["0.0", "0.0", "0"]
+}
