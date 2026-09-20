@@ -1,8 +1,8 @@
 # APR Dashboard Submission Package
 
 This package prepares APR and STA runs for the dashboard. Step 1 fixed the
-timing schema. Step 2 adds run metadata extraction. The submission session
-that writes JSON comes later.
+timing schema, step 2 added run metadata extraction, and step 3 joins them into
+a submission session that saves one JSON file per run.
 
 Standard library only, written for Python 3.8 syntax and APIs. No external
 dependencies, no build system, no framework.
@@ -20,15 +20,64 @@ the earlier copy of this package plus the inherited `API_EXAMPLE/`,
 
 | File | Purpose |
 | --- | --- |
-| `apr_dashboard/__init__.py` | Package docstring. Imports nothing and exports nothing. |
+| `apr_dashboard/__init__.py` | Package docstring, and the one export `initialize`. |
 | `apr_dashboard/timing_schema.py` | Timing schema constants and the two validators. |
 | `apr_dashboard/metadata.py` | Run path, log checker and metadata helpers. |
-| `apr_dashboard/dashboard_config.example.json` | Example configuration for a later step. |
-| `apr_dashboard/tests/test_submission.py` | `unittest` tests for both modules. |
+| `apr_dashboard/submission.py` | Configuration reading, `initialize` and the `Submission` session. |
+| `apr_dashboard/dashboard_config.example.json` | Example configuration to copy and edit. |
+| `apr_dashboard/tests/test_submission.py` | `unittest` tests for all three modules. |
 | `apr_dashboard/.gitignore` | Keeps the demo workspace, the real config and bytecode out of git. |
 | `apr_dashboard/README.md` | This file. |
 
-### About `dashboard_config.example.json`
+## Using the package
+
+```python
+from apr_dashboard import initialize
+
+session = initialize(
+    "/demo/runs/par_demo/DEMO001/300cts",
+    "/demo/runs/par_demo/DEMO001/300cts/apr_A.log",
+    source_type="APR",
+    config_path="apr_dashboard/dashboard_config.json",
+)
+
+session.submit_data("tmg_scenarios", ["FUNC_SS", "FUNC_FF"])
+session.submit_data("tmg_path_groups", ["reg2reg", "reg2out"])
+session.submit_data("tmg,FUNC_SS,rptfile", "/demo/runs/par_demo/DEMO001/300cts/timing.rpt")
+session.submit_data("tmg,FUNC_SS,reg2reg,setup", [-0.12, -1.8, 24])
+session.submit_data("tmg,FUNC_SS,reg2reg,hold", [0.0, 0.0, 0])
+
+output_path = session.close()
+```
+
+An STA run names the APR stage it analysed, using the same two extra arguments
+`build_metadata` takes.
+
+```python
+session = initialize(
+    "/demo/runs/par_demo/DEMO001/sta",
+    "/demo/runs/par_demo/DEMO001/sta/sta_A.log",
+    "300cts",
+    "/demo/runs/par_demo/DEMO001/300cts/apr_A.log",
+    source_type="STA",
+    config_path="apr_dashboard/dashboard_config.json",
+)
+```
+
+`initialize` is the only name exported from the package. `submit_data` returns
+`None` and `close` returns the absolute output path as a string. There is no
+global current session, so several sessions can be open at once without
+touching each other.
+
+The run directory and both log checker files must already exist and follow the
+synthetic conventions described below, because `initialize` reads them. The
+timing values passed to `submit_data` are supplied by the caller. Reading them
+out of a real Timing report is still Yong Sean's parser to write.
+
+### Configuration
+
+Copy `dashboard_config.example.json` to `dashboard_config.json`, edit it, and
+pass its path as `config_path`.
 
 ```json
 {
@@ -39,11 +88,16 @@ the earlier copy of this package plus the inherited `API_EXAMPLE/`,
 
 JSON has no comments, so the file is described here instead. `run_root` is the
 directory that holds every block's runs, and `output_dir` is where submissions
-will be written. Both paths are relative to the configuration file itself,
-meaning `apr_dashboard/`, not to the current working directory. A later step
-will copy this file to `apr_dashboard/dashboard_config.json`, resolve the paths
-against the config file's directory and create the directories. Nothing in
-steps 1 and 2 reads this file.
+are written. Exactly these two settings are accepted, each a non-empty string.
+A missing setting, an unknown setting, a wrong type, a blank value or invalid
+JSON is a `ValueError`.
+
+A relative `config_path` is resolved against the caller's working directory. A
+relative setting inside the file is resolved against the configuration file's
+own directory instead, so the same config means the same directories no matter
+where the caller runs. An absolute setting is used exactly as written. The
+package never searches for a configuration file, never copies the example and
+never creates the output directory during `initialize`.
 
 ## Run metadata
 
@@ -295,6 +349,89 @@ submit values in any order, even before the index lists arrive.
 `validate_item`, then applies the two cross-checks above. An empty dict and
 index only dicts are valid.
 
+## The saved file
+
+`close` writes one flat JSON object to
+`<output_dir>/<submission_id>.json`. It carries the header fields first, then
+whatever was submitted, then `submitted_at`.
+
+```json
+{
+  "schema_version": "timing-0.1",
+  "timing_unit": "ns",
+  "submission_id": "ed027104-f57e-47d5-9631-c7267db97c28",
+  "block_name": "par_demo",
+  "run_tag": "DEMO001",
+  "step": "300cts",
+  "apr_stage": "300cts",
+  "source_type": "APR",
+  "run_path": "/demo/runs/par_demo/DEMO001/300cts",
+  "log_checker_file": "/demo/runs/par_demo/DEMO001/300cts/apr_A.log",
+  "run_timestamp": "2026-09-20T08:00:00Z",
+  "tmg_scenarios": ["FUNC_SS", "FUNC_FF"],
+  "tmg_path_groups": ["reg2reg", "reg2out"],
+  "tmg,FUNC_SS,rptfile": "/example/timing.rpt",
+  "tmg,FUNC_SS,reg2reg,setup": [-0.12, -1.8, 24],
+  "tmg,FUNC_SS,reg2reg,hold": [0.0, 0.0, 0],
+  "submitted_at": "2026-09-20T12:39:57.168118Z"
+}
+```
+
+An STA submission adds `origin_step`, `origin_log_checker_file` and
+`origin_run_timestamp` alongside the other metadata. The metrics are not nested
+under a `data` key and no second metadata file is written.
+
+Numbers keep the types they were given, so `24` stays an integer and `0.0`
+stays a float. Anything that was never submitted is simply absent, and a
+submitted zero is a real measurement. A submission carrying only metadata is
+valid, because an empty metric dictionary is valid, but it is not evidence that
+timing ran, completed or passed.
+
+### Two timestamps that mean different things
+
+`run_timestamp` comes from the run's log checker file and says when the run
+happened. `submitted_at` is generated inside `close` and says when this file was
+written. They are unrelated, and `submitted_at` is never used as a run time.
+
+The metadata is captured during `initialize`. Neither the configuration nor the
+logs are read again at `close`, so editing a log midway cannot retag a
+submission that is already under way.
+
+### Repeated submissions
+
+`submission_id` is a fresh `uuid4` per `initialize`, so submitting the same run
+twice produces two files and keeps both. Nothing is overwritten, merged or
+numbered by counting files. Calling `close` again on a session that already
+saved returns the same path and leaves the file untouched, and `submit_data`
+after a successful `close` raises `RuntimeError`.
+
+### When something goes wrong
+
+A failed `close` leaves the session open, so the caller can fix the problem and
+try again.
+
+* A duplicate key is a `ValueError` and the first value is kept. Values are
+  never silently replaced.
+* A value is copied when it is submitted, so a caller that keeps editing its
+  own list cannot change what gets saved.
+* If cross-field validation fails, for instance because a scenario has
+  measurements but no `rptfile` entry, nothing is written. Submit the missing
+  entry and call `close` again.
+* The payload is serialised before any file is opened, so a value that cannot
+  be written leaves nothing behind.
+* The file is created with exclusive mode `x`. If the destination already
+  exists it is preserved untouched and the error propagates.
+* If the write or the file close fails after this attempt created the file,
+  only that new incomplete file is removed. A pre-existing file and the output
+  directory are never deleted, and a failure to clean up is reported rather
+  than hidden behind a false success.
+
+### Limits of this writer
+
+This is a local prototype. There is no locking, no journalling and no
+concurrent reader, so it makes no claim of crash-atomic publication or of
+correctness on a shared filesystem. It has not been exercised against EC.
+
 ## Running the tests
 
 From the repository root:
@@ -317,30 +454,30 @@ The five symlink tests skip themselves on a machine that refuses to create
 directory symlinks, which is any plain Windows account without Developer Mode.
 They report as skipped rather than passing, and they run normally on Linux.
 
+The submission tests build their configurations, runs, logs and output
+directories under temporary directories, and they inject I/O failures with
+`unittest.mock` rather than with filesystem permission tricks. No demo file
+survives a test run.
+
 ## Implemented now and later
 
 Implemented so far:
 
-* Package layout.
+* Package layout and the single export `initialize`.
 * Timing schema constants and `validate_item` and `validate_submission`.
 * `parse_run_path`, `read_run_timestamp` and `build_metadata`.
-* Tests for all five functions and the example configuration file.
+* Configuration reading, `initialize`, `submit_data` and `close`, saving one
+  JSON file per submission.
+* Tests for all of it, plus the example configuration file.
 
 Not implemented yet:
 
-* `submission.py` and `example_submit.py`.
-* `initialize`, a session class, `submit_data` and `close`.
-* Configuration loading and creating the demo workspace directories.
+* `example_submit.py` and the standalone demonstration.
 * The timing report parser, which Yong Sean owns.
 * Real log checker formats from EC.
-* JSON writing, including `submission_id`, `schema_version`, `timing_unit` and
-  `submitted_at`.
 * DRV fields such as `max_cap`, `max_trans` and `min_period`.
-* Any dashboard or UI change.
+* Central deployment, history selection, snapshots and any dashboard or UI
+  change.
 
 Choosing the latest run, enforcing flow order, inferring completion status and
-judging timing results are all out of scope for the metadata module.
-
-Duplicate metric submission, meaning the same key submitted twice, is a session
-concern for a later step. These validators only detect duplicate labels inside
-an index list.
+judging timing results all remain out of scope.
