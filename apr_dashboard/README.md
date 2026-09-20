@@ -25,8 +25,10 @@ the earlier copy of this package plus the inherited `API_EXAMPLE/`,
 | `apr_dashboard/metadata.py` | Run path, log checker and metadata helpers. |
 | `apr_dashboard/submission.py` | Configuration reading, `initialize` and the `Submission` session. |
 | `apr_dashboard/example_submit.py` | Runnable demonstration that builds synthetic inputs and saves two records. |
+| `apr_dashboard/build_dashboard.py` | Reads submission JSON and writes one self-contained HTML page. |
 | `apr_dashboard/dashboard_config.example.json` | Example configuration to copy and edit. |
-| `apr_dashboard/tests/test_submission.py` | `unittest` tests for all three modules. |
+| `apr_dashboard/tests/test_submission.py` | `unittest` tests for the schema, metadata and submission modules. |
+| `apr_dashboard/tests/test_dashboard.py` | `unittest` tests for the HTML builder. |
 | `apr_dashboard/.gitignore` | Keeps the demo workspace, the real config and bytecode out of git. |
 | `apr_dashboard/README.md` | This file. |
 
@@ -77,6 +79,53 @@ converted to UTC on the way in, so the conversion is visible in the output.
 Both records deliberately leave `FUNC_FF` and `reg2out` declared but never
 measured, and both carry a real zero hold measurement. That is what a partial
 submission looks like.
+
+### Viewing the records in a browser
+
+Copy the workspace path the demonstration printed, then build a page from its
+`submissions` directory.
+
+```sh
+python3 -m apr_dashboard.example_submit
+python3 -m apr_dashboard.build_dashboard <workspace>/submissions
+```
+
+The builder prints how many records it loaded and where it wrote the page.
+Open that file in Firefox.
+
+```sh
+firefox /absolute/path/to/<workspace>/dashboard.html &
+```
+
+With no `--output` the page lands beside the input directory, so a
+`<workspace>/submissions` input produces `<workspace>/dashboard.html`. Pass
+`--output <path>` to put it somewhere else; missing parent directories are
+created.
+
+The chain is short and one-directional.
+
+```
+submission JSON  ->  build_dashboard.py  ->  dashboard.html  ->  browser
+```
+
+Python does the reading and the checking. It confirms each file still matches
+the v0.1 schema, then writes the values straight into the markup. The page is
+self-contained, with embedded CSS and no JavaScript, so the browser never
+fetches the JSON or anything else. That is why it opens correctly from a plain
+`file://` path.
+
+The JSON files stay the authoritative records and the page is only a view of
+them. Rerun the builder whenever the JSON inputs change, and the page is
+rebuilt from what is on disk at that moment. It does not refresh itself.
+
+Every valid record is currently shown on its own card, which the page says in
+a notice at the top. Latest-valid selection, APR and STA precedence, stale-run
+detection and automatic refresh are all still to come, as is hardening the
+write for a page someone else is reading at the same time.
+
+For EC, `build_dashboard.py` is the only new runtime file to copy into the
+`apr_dashboard/` directory that is already there. The tests and this README are
+useful in GitHub but the viewer does not need them.
 
 ### What is not real about it
 
@@ -537,6 +586,7 @@ Implemented so far:
 * Configuration reading, `initialize`, `submit_data` and `close`, saving one
   JSON file per submission.
 * `example_submit.py`, a runnable demonstration on synthetic inputs.
+* `build_dashboard.py`, a static HTML view of the stored records.
 * Tests for all of it, plus the example configuration file.
 
 Not implemented yet:
@@ -545,8 +595,11 @@ Not implemented yet:
   timing value reaching this package is supplied by its caller.
 * Real log checker formats from EC.
 * DRV fields such as `max_cap`, `max_trans` and `min_period`.
-* Central deployment, history selection, snapshots and any dashboard or UI
-  change.
+* Latest-valid run selection, APR and STA precedence, and stale-run detection.
+  The page shows every valid record instead.
+* Automatic refresh, a live server, and hardening the page write for a reader
+  opening it at the same time.
+* Central deployment, snapshots and the final multi-page dashboard.
 
 Choosing the latest run, enforcing flow order, inferring completion status and
 judging timing results all remain out of scope.
