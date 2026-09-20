@@ -24,10 +24,78 @@ the earlier copy of this package plus the inherited `API_EXAMPLE/`,
 | `apr_dashboard/timing_schema.py` | Timing schema constants and the two validators. |
 | `apr_dashboard/metadata.py` | Run path, log checker and metadata helpers. |
 | `apr_dashboard/submission.py` | Configuration reading, `initialize` and the `Submission` session. |
+| `apr_dashboard/example_submit.py` | Runnable demonstration that builds synthetic inputs and saves two records. |
 | `apr_dashboard/dashboard_config.example.json` | Example configuration to copy and edit. |
 | `apr_dashboard/tests/test_submission.py` | `unittest` tests for all three modules. |
 | `apr_dashboard/.gitignore` | Keeps the demo workspace, the real config and bytecode out of git. |
 | `apr_dashboard/README.md` | This file. |
+
+## Seeing it work
+
+Run the demonstration from the folder that holds `apr_dashboard/`, normally the
+repository root.
+
+```sh
+python -m apr_dashboard.example_submit
+```
+
+Nothing has to be prepared first. The demonstration writes its own
+configuration, run directories, log checker files and report placeholders, so
+it never reads or changes a real `dashboard_config.json`. Use `python3` if that
+is the interpreter on your PATH.
+
+Each run creates a fresh workspace under `apr_dashboard/demo_workspace/` with a
+random suffix, and prints the three paths it produced.
+
+```
+workspace:  apr_dashboard/demo_workspace/demo_<random>
+APR record: apr_dashboard/demo_workspace/demo_<random>/submissions/<apr_uuid>.json
+STA record: apr_dashboard/demo_workspace/demo_<random>/submissions/<sta_uuid>.json
+```
+
+`demo_<random>`, `<apr_uuid>` and `<sta_uuid>` stand in for the names the run
+actually generates. Inside the workspace:
+
+```
+dashboard_config.json
+runs/par_demo/DEMO001/300cts/apr_A.log
+runs/par_demo/DEMO001/300cts/timing.rpt
+runs/par_demo/DEMO001/sta/sta_A.log
+runs/par_demo/DEMO001/sta/timing.rpt
+submissions/<apr_uuid>.json
+submissions/<sta_uuid>.json
+```
+
+The two records show the same block and run tag from two different angles. The
+APR record describes the `300cts` stage and carries `run_timestamp`
+`2026-09-20T08:00:00Z`. The STA record describes the `sta` stage, carries its
+own later `run_timestamp` `2026-09-20T09:00:00Z`, and links back through
+`origin_step`, `origin_log_checker_file` and `origin_run_timestamp` to the APR
+stage it analysed. Both timestamps are written in the logs as `+08:00` and
+converted to UTC on the way in, so the conversion is visible in the output.
+
+Both records deliberately leave `FUNC_FF` and `reg2out` declared but never
+measured, and both carry a real zero hold measurement. That is what a partial
+submission looks like.
+
+### What is not real about it
+
+The log times are fixed example values, the `timing.rpt` files are short text
+placeholders, and the timing numbers are typed straight into
+`example_submit.py`. No timing report is parsed anywhere. The real parser is
+still Yong Sean's work, and this demonstration does not touch it.
+
+Repeated runs keep every earlier workspace, so results can be compared and
+nothing is overwritten. `demo_workspace/` is already ignored by git, so none of
+it is committed.
+
+The `apr_dashboard/` folder can be copied somewhere else as a unit and run from
+its parent directory. It does not depend on the older `dashboard/` tree or on
+anything else in this repository.
+
+A successful demonstration shows that the API fits together. It does not
+confirm real EC paths, real log checker formats, parser integration or the
+provenance of any timing database.
 
 ## Using the package
 
@@ -468,12 +536,13 @@ Implemented so far:
 * `parse_run_path`, `read_run_timestamp` and `build_metadata`.
 * Configuration reading, `initialize`, `submit_data` and `close`, saving one
   JSON file per submission.
+* `example_submit.py`, a runnable demonstration on synthetic inputs.
 * Tests for all of it, plus the example configuration file.
 
 Not implemented yet:
 
-* `example_submit.py` and the standalone demonstration.
-* The timing report parser, which Yong Sean owns.
+* The timing report parser, which Yong Sean owns. Until it exists, every
+  timing value reaching this package is supplied by its caller.
 * Real log checker formats from EC.
 * DRV fields such as `max_cap`, `max_trans` and `min_period`.
 * Central deployment, history selection, snapshots and any dashboard or UI

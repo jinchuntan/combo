@@ -1,7 +1,6 @@
-"""Tests for the timing schema validators and the run metadata helpers.
+"""Tests for schema validation, metadata extraction and submission sessions.
 
-Run them from the repository root as the README describes. Later steps will
-extend this file with submission session tests.
+Run them from the repository root as the README describes.
 """
 
 import copy
@@ -726,12 +725,18 @@ class TestBuildMetadata(MetadataTestCase):
 
 
 class WriteFailure:
-    """A file handle that fails on write, used to inject an I/O error."""
+    """A file handle that saves part of the text and then fails.
+
+    Writing a real prefix first leaves a short incomplete file on disk, which
+    is the mess that close has to clean up after itself.
+    """
 
     def __init__(self, handle):
         self._handle = handle
 
     def write(self, text):
+        self._handle.write(text[:max(1, len(text) // 2)])
+        self._handle.flush()
         raise OSError("injected write failure")
 
     def close(self):
