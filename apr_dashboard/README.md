@@ -1,8 +1,8 @@
 # APR Dashboard Submission Package
 
-This package prepares APR and STA runs for the dashboard. Step 1 fixed the
-timing schema, step 2 added run metadata extraction, and step 3 joins them into
-a submission session that saves one JSON file per run.
+This package prepares APR and STA runs for the dashboard. It fixes the timing
+schema, extracts run metadata, joins the two in a submission session that saves
+one JSON file per run, and builds a small layered HTML view of those records.
 
 Standard library only, written for Python 3.8 syntax and APIs. No external
 dependencies, no build system, no framework.
@@ -25,7 +25,7 @@ the earlier copy of this package plus the inherited `API_EXAMPLE/`,
 | `apr_dashboard/metadata.py` | Run path, log checker and metadata helpers. |
 | `apr_dashboard/submission.py` | Configuration reading, `initialize` and the `Submission` session. |
 | `apr_dashboard/example_submit.py` | Runnable demonstration that builds synthetic inputs and saves two records. |
-| `apr_dashboard/build_dashboard.py` | Reads submission JSON and writes one self-contained HTML page. |
+| `apr_dashboard/build_dashboard.py` | Reads submission JSON and writes the layered HTML dashboard. |
 | `apr_dashboard/dashboard_config.example.json` | Example configuration to copy and edit. |
 | `apr_dashboard/tests/test_submission.py` | `unittest` tests for the schema, metadata and submission modules. |
 | `apr_dashboard/tests/test_dashboard.py` | `unittest` tests for the HTML builder. |
@@ -82,59 +82,98 @@ submission looks like.
 
 ### Viewing the records in a browser
 
-Copy the workspace path the demonstration printed, then build a page from its
-`submissions` directory.
+Copy the workspace path the demonstration printed, then build the dashboard
+from its `submissions` directory.
 
 ```sh
 python3 -m apr_dashboard.example_submit
 python3 -m apr_dashboard.build_dashboard <workspace>/submissions
 ```
 
-The builder prints how many records it loaded and where it wrote the page.
-Open that file in Firefox.
+The builder prints how many records it loaded and where it wrote the entry
+page. Open that file in Firefox.
 
 ```sh
 firefox /absolute/path/to/<workspace>/dashboard.html &
 ```
 
-With no `--output` the page lands beside the input directory, so a
-`<workspace>/submissions` input produces `<workspace>/dashboard.html`. Pass
-`--output <path>` to put it somewhere else; missing parent directories are
-created.
+#### Three levels
+
+The dashboard is three plain pages deep, linked by ordinary `<a>` links.
+
+1. **Block overview**, the entry page. One row per block with its name, how
+   many distinct run tags it has and how many submissions were loaded.
+2. **Block page**. One row per submission, showing run tag, APR stage, APR or
+   STA, step, run timestamp and a `View timing` link.
+3. **Timing page**. The scenario by path group matrix for one submission, with
+   `Setup` and `Hold` each split into `WNS (ns)`, `TNS (ns)` and `NVP`.
+   Underneath, two collapsed sections hold the full record details and the
+   report references.
+
+Every page carries breadcrumb links back up, so the whole thing is navigable
+with clicks and the browser Back button. There is no JavaScript and nothing is
+fetched, which is why it works from a plain `file://` path.
+
+The matrix width follows the input. Two declared path groups give twelve metric
+columns, six give thirty-six. A scenario and path group with no measurement
+shows `N/A` in its three cells, while a stored zero stays visible as `0.0` or
+`0`. A record with no scenarios or no path groups still gets a page, with a
+short line in place of the table and its metadata still readable.
+
+#### Generated files
+
+With no `--output`, a `<workspace>/submissions` input produces:
+
+```
+<workspace>/dashboard.html                      the overview
+<workspace>/dashboard_pages/block_<id>.html     one per block
+<workspace>/dashboard_pages/record_<id>.html    one per submission
+```
+
+Pass `--output <path>` to put the entry page elsewhere. The companion folder is
+named after it, so `view.html` is accompanied by `view_pages/`, and missing
+parent directories are created. `<id>` is a SHA-256 digest of the exact block
+name or submission id, so spaces and odd characters in a label cannot affect a
+filename.
+
+The links between pages are relative, so the entry page and its companion
+folder can be copied elsewhere together. Move one without the other and the
+navigation breaks.
+
+#### Rebuilding and safety
 
 The chain is short and one-directional.
 
 ```
-submission JSON  ->  build_dashboard.py  ->  dashboard.html  ->  browser
+submission JSON  ->  build_dashboard.py  ->  HTML pages  ->  browser
 ```
 
-Python does the reading and the checking. It confirms each file still matches
-the v0.1 schema, then writes the values straight into the markup. The page is
-self-contained, with embedded CSS and no JavaScript, so the browser never
-fetches the JSON or anything else. That is why it opens correctly from a plain
-`file://` path.
+The JSON files stay the authoritative records and the pages are only a view of
+them. The builder never writes over one of those records: any planned page that
+turns out to be a submission file is rejected before anything is created,
+whether it was named directly, reached through a relative path, or aliased by a
+symlink or a hard link. It also refuses a build where two generated pages would
+land on the same file. Rebuilding an ordinary `dashboard.html` is fine, and so
+is an explicitly chosen HTML file inside the `submissions` directory.
 
-The JSON files stay the authoritative records and the page is only a view of
-them. The builder never writes over one of those records: an output that turns
-out to be a submission file is rejected before anything is created, whether it
-was named directly, reached through a relative path, or aliased by a symlink or
-a hard link. Rebuilding an ordinary `dashboard.html` is fine, and so is an
-explicitly chosen HTML file inside the `submissions` directory.
+Rerun the builder whenever the JSON inputs change and every page is rebuilt
+from what is on disk at that moment. Nothing refreshes itself. Pages for
+records that have since been removed may remain in the companion folder, but a
+rebuilt overview only links to the records it just loaded. All pages are
+rendered before any is written, so a rendering failure cannot truncate a page
+that is already there, but a failure part way through the writes can still
+leave partial HTML. That is acceptable while nothing else reads these files.
 
-Rerun the builder whenever the JSON inputs change, and the page is rebuilt from
-what is on disk at that moment. It does not refresh itself. The page is
-rendered in full before the output file is opened, so a rendering failure
-cannot truncate an existing page, but a failure part way through the write can
-still leave partial HTML. That is acceptable while nothing else reads the file.
+Every valid record is listed, which the overview says in a plain sentence.
+Latest-valid selection, APR and STA precedence, stale-run detection and
+automatic refresh are all still to come, as is hardening the write for a page
+someone else is reading at the same time. A listed STA record is not
+necessarily the latest valid result for its APR run.
 
-Every valid record is currently shown on its own card, which the page says in
-a notice at the top. Latest-valid selection, APR and STA precedence, stale-run
-detection and automatic refresh are all still to come, as is hardening the
-write for a page someone else is reading at the same time.
-
-For EC, `build_dashboard.py` is the only new runtime file to copy into the
-`apr_dashboard/` directory that is already there. The tests and this README are
-useful in GitHub but the viewer does not need them.
+For EC, `build_dashboard.py` is the only runtime file to copy into the
+`apr_dashboard/` directory that is already there. The script writes all the
+HTML pages itself, so there is nothing else to copy across by hand. The tests
+and this README are useful in GitHub but the viewer does not need them.
 
 ### What is not real about it
 
@@ -595,7 +634,7 @@ Implemented so far:
 * Configuration reading, `initialize`, `submit_data` and `close`, saving one
   JSON file per submission.
 * `example_submit.py`, a runnable demonstration on synthetic inputs.
-* `build_dashboard.py`, a static HTML view of the stored records.
+* `build_dashboard.py`, a static three level HTML view of the stored records.
 * Tests for all of it, plus the example configuration file.
 
 Not implemented yet:
@@ -605,10 +644,12 @@ Not implemented yet:
 * Real log checker formats from EC.
 * DRV fields such as `max_cap`, `max_trans` and `min_period`.
 * Latest-valid run selection, APR and STA precedence, and stale-run detection.
-  The page shows every valid record instead.
-* Automatic refresh, a live server, and hardening the page write for a reader
-  opening it at the same time.
-* Central deployment, snapshots and the final multi-page dashboard.
+  Every valid record is listed instead.
+* Charts, tabs, automatic refresh, a live server, and hardening the page writes
+  for a reader opening them at the same time.
+* Removing pages for records that no longer exist. A rebuilt overview stops
+  linking to them, but the old files are left alone.
+* Central deployment and snapshots.
 
 Choosing the latest run, enforcing flow order, inferring completion status and
 judging timing results all remain out of scope.
