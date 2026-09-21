@@ -1,0 +1,4 @@
+{
+  "run_root": "demo_workspace/runs",
+  "output_dir": "demo_workspace/submissions"
+}
