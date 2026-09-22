@@ -1,0 +1,4 @@
+# Everything this demo generates stays out of the repository.
+/demo_workspace/
+__pycache__/
+*.pyc
